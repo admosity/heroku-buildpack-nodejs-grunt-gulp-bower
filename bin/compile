@@ -139,22 +139,32 @@ status "Building runtime environment"
 mkdir -p $build_dir/.profile.d
 echo "export PATH=\"\$HOME/vendor/node/bin:\$HOME/bin:\$HOME/node_modules/.bin:\$PATH\";" > $build_dir/.profile.d/nodejs.sh
 
-bower_cache_home=$cache_dir/bower
-mkdir -p $bower_cache_home/cache
-
-node_dir=$bower_cache_home/node
-bower_app=$node_dir/lib/node_modules/bower
-
-# TODO: check for bower updates?
-if [ ! -d $bower_app ]; then
-    status "Installing Bower, this may take a moment. The Bower installation is cached for subsequent runs."
-    # TODO: this fork resolves the sporadic ENOENT / ENOTFOUND errors that occur in Heroku.
-    $node_dir/bin/npm --silent -g install git://github.com/neoziro/bower.git#v1.2.8-patched
+if [ -f $BUILD_DIR/bower.json ]; then
+  # make sure that bower is installed locally
+  run_npm "install bower"
+  echo "-----> Found bower.json, running bower install"
+  $BUILD_DIR/node_modules/.bin/bower install
+else
+  echo "-----> No Bower.json found"
 fi
 
-status "Installing Bower dependencies."
-PATH=$PATH:$node_dir/bin
-$bower_app/bin/bower --config.cwd=$build_dir --config.storage.packages=$bower_cache_home/packages --config.storage.registry=$bower_cache_home/registry install
+if [ -f $BUILD_DIR/grunt.js ] || [ -f $BUILD_DIR/Gruntfile.js ] || [ -f $BUILD_DIR/Gruntfile.coffee ]; then
+  # make sure that grunt-cli and bower are installed locally
+  npm install grunt-cli
+  echo "-----> Found Gruntfile, running grunt task"
+  $BUILD_DIR/node_modules/.bin/grunt
+else
+  echo "-----> No Gruntfile (grunt.js, Gruntfile.js, Gruntfile.coffee) found"
+fi
+
+if [ -f $BUILD_DIR/gulpfile.js ]; then
+  # make sure that grunt-cli and bower are installed locally
+  npm install gulp
+  echo "-----> Found Gulpfile, running gulp task"
+  $BUILD_DIR/node_modules/.bin/gulp dist
+else
+  echo "-----> No Gulpfile found"
+fi
 
 # Post package.json to nomnom service
 # Use a subshell so failures won't break the build.
