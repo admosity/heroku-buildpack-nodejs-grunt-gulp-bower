@@ -110,6 +110,7 @@ fi
 
 if [ -f $build_dir/gulpfile.js ]; then
   npm install gulp
+  $build_dir/node_modules/.bin/gulp dist
 else
   echo "-----> No Gulpfile found"
 fi
